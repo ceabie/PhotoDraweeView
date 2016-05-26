@@ -12,18 +12,22 @@ import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.drawee.backends.pipeline.PipelineDraweeControllerBuilder;
 import com.facebook.drawee.controller.BaseControllerListener;
 import com.facebook.imagepipeline.image.ImageInfo;
+import com.facebook.imagepipeline.request.ImageRequestBuilder;
+
 import me.relex.circleindicator.CircleIndicator;
 import me.relex.photodraweeview.PhotoDraweeView;
 
 public class ViewPagerActivity extends AppCompatActivity {
 
-    @Override protected void onCreate(Bundle savedInstanceState) {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_viewpager);
 
         ((Toolbar) findViewById(R.id.toolbar)).setNavigationOnClickListener(
                 new View.OnClickListener() {
-                    @Override public void onClick(View v) {
+                    @Override
+                    public void onClick(View v) {
                         onBackPressed();
                     }
                 });
@@ -34,39 +38,57 @@ public class ViewPagerActivity extends AppCompatActivity {
         indicator.setViewPager(viewPager);
     }
 
+    public static boolean isLongImageByVertical(int imgWidth, int imgHeight) {
+        if (imgWidth == 0 || imgHeight == 0) {
+            return false;
+        }
+        if (imgHeight >= imgWidth * 3) {
+            return true;
+        } else {
+            return false;
+        }
+    }
     public class DraweePagerAdapter extends PagerAdapter {
 
         private int[] mDrawables = new int[] {
-                R.drawable.viewpager_1, R.drawable.viewpager_2, R.drawable.viewpager_3
-        };
+                R.drawable.long_img
+                , R.drawable.viewpager_2, R.drawable.viewpager_3};
 
-        @Override public int getCount() {
+        @Override
+        public int getCount() {
             return mDrawables.length;
         }
 
-        @Override public boolean isViewFromObject(View view, Object object) {
+        @Override
+        public boolean isViewFromObject(View view, Object object) {
             return view == object;
         }
 
-        @Override public void destroyItem(ViewGroup container, int position, Object object) {
+        @Override
+        public void destroyItem(ViewGroup container, int position, Object object) {
             container.removeView((View) object);
         }
 
-        @Override public Object instantiateItem(ViewGroup viewGroup, int position) {
+        @Override
+        public Object instantiateItem(ViewGroup viewGroup, int position) {
             final PhotoDraweeView photoDraweeView = new PhotoDraweeView(viewGroup.getContext());
+            photoDraweeView.setAdjustMaxScale(true);
+
             PipelineDraweeControllerBuilder controller = Fresco.newDraweeControllerBuilder();
-            controller.setUri(Uri.parse("res:///" + mDrawables[position]));
+            controller.setImageRequest(ImageRequestBuilder.newBuilderWithResourceId(mDrawables[position]).build());
             controller.setOldController(photoDraweeView.getController());
+
             controller.setControllerListener(new BaseControllerListener<ImageInfo>() {
                 @Override
                 public void onFinalImageSet(String id, ImageInfo imageInfo, Animatable animatable) {
-                    super.onFinalImageSet(id, imageInfo, animatable);
-                    if (imageInfo == null) {
-                        return;
+                    if (imageInfo != null && isLongImageByVertical(imageInfo.getWidth(), imageInfo.getHeight())) {
+                        photoDraweeView.setAdjustMaxScale(true);
+                    } else {
+                        photoDraweeView.setAdjustMaxScale(false);
                     }
-                    photoDraweeView.update(imageInfo.getWidth(), imageInfo.getHeight());
                 }
             });
+
             photoDraweeView.setController(controller.build());
 
             try {
