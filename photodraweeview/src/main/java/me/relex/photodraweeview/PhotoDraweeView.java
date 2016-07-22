@@ -30,6 +30,7 @@ public class PhotoDraweeView extends SimpleDraweeView implements IAttacher, Cont
     private boolean mAdjustOnResize;
     private int mImageWidth;
     private int mImageHeight;
+    private IAdjustController mAdjustController;
 
     public PhotoDraweeView(Context context, GenericDraweeHierarchy hierarchy) {
         super(context, hierarchy);
@@ -66,7 +67,7 @@ public class PhotoDraweeView extends SimpleDraweeView implements IAttacher, Cont
     protected void onDraw(@NonNull Canvas canvas) {
         int saveCount = canvas.save();
         Matrix drawMatrix = mAttacher.getDrawMatrix();
-        Log.d("fresco", "onDraw: " + drawMatrix);
+//        Log.d("fresco", "onDraw: " + drawMatrix);
         canvas.concat(drawMatrix);
         super.onDraw(canvas);
         canvas.restoreToCount(saveCount);
@@ -189,9 +190,16 @@ public class PhotoDraweeView extends SimpleDraweeView implements IAttacher, Cont
         setAutoScale(mImageWidth, mImageHeight);
     }
 
+    public void setAdjustController(IAdjustController adjustController) {
+        mAdjustController = adjustController;
+    }
+
     @Override
     public void setController(DraweeController draweeController) {
         mImageWidth = mImageHeight = 0;
+        mAttacher.setScaleMultipler(1.0f);
+        resetScale();
+
         if (draweeController instanceof PipelineDraweeController) {
             PipelineDraweeController controller = (PipelineDraweeController) draweeController;
             controller.removeControllerListener(this);
@@ -217,6 +225,12 @@ public class PhotoDraweeView extends SimpleDraweeView implements IAttacher, Cont
         }
     }
 
+    /**
+     * 在onResize中调整自适应
+     *
+     * @return the boolean
+     * @author chenxi
+     */
     private boolean adjustOnResize() {
         int height = getMeasuredHeight();
         int width = getMeasuredWidth();
@@ -245,6 +259,10 @@ public class PhotoDraweeView extends SimpleDraweeView implements IAttacher, Cont
             mAttacher.setScaleMultipler(1.0f);
         }
 
+        resetScale();
+    }
+
+    private void resetScale() {
         float minimumScale = mAttacher.getMinimumScale();
         if (getScale() != minimumScale) {
             setScale(minimumScale);
@@ -268,6 +286,11 @@ public class PhotoDraweeView extends SimpleDraweeView implements IAttacher, Cont
                 ViewCompat.setLayerType(this, ViewCompat.LAYER_TYPE_HARDWARE, null);
             }
 
+            if (mAdjustController != null) {
+                mAdjustMaxScale = mAdjustController.onAdjustWidth(mImageWidth, mImageHeight);
+            }
+
+            // 界面测量完成
             if (!adjustOnResize()) {
                 update(mImageWidth, mImageHeight);
                 setAutoScale(mImageWidth, mImageHeight);

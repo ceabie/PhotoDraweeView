@@ -11,10 +11,12 @@ import android.view.ViewGroup;
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.drawee.backends.pipeline.PipelineDraweeControllerBuilder;
 import com.facebook.drawee.controller.BaseControllerListener;
+import com.facebook.drawee.drawable.ProgressBarDrawable;
 import com.facebook.imagepipeline.image.ImageInfo;
 import com.facebook.imagepipeline.request.ImageRequestBuilder;
 
 import me.relex.circleindicator.CircleIndicator;
+import me.relex.photodraweeview.IAdjustController;
 import me.relex.photodraweeview.PhotoDraweeView;
 
 public class ViewPagerActivity extends AppCompatActivity {
@@ -52,7 +54,15 @@ public class ViewPagerActivity extends AppCompatActivity {
 
         private int[] mDrawables = new int[] {
                 R.drawable.long_img
-                , R.drawable.viewpager_2, R.drawable.viewpager_3};
+                , R.drawable.viewpager_2, R.drawable.viewpager_3,
+                R.drawable.long_img
+                , R.drawable.viewpager_2};
+        private IAdjustController mAdjustController = new IAdjustController() {
+            @Override
+            public boolean onAdjustWidth(int width, int height) {
+                return isLongImageByVertical(width, height);
+            }
+        };
 
         @Override
         public int getCount() {
@@ -72,22 +82,13 @@ public class ViewPagerActivity extends AppCompatActivity {
         @Override
         public Object instantiateItem(ViewGroup viewGroup, int position) {
             final PhotoDraweeView photoDraweeView = new PhotoDraweeView(viewGroup.getContext());
-            photoDraweeView.setAdjustMaxScale(true);
+            photoDraweeView.setAdjustController(mAdjustController);
 
+            photoDraweeView.getHierarchy().setProgressBarImage(new ProgressBarDrawable());
             PipelineDraweeControllerBuilder controller = Fresco.newDraweeControllerBuilder();
             controller.setImageRequest(ImageRequestBuilder.newBuilderWithResourceId(mDrawables[position]).build());
             controller.setOldController(photoDraweeView.getController());
 
-            controller.setControllerListener(new BaseControllerListener<ImageInfo>() {
-                @Override
-                public void onFinalImageSet(String id, ImageInfo imageInfo, Animatable animatable) {
-                    if (imageInfo != null && isLongImageByVertical(imageInfo.getWidth(), imageInfo.getHeight())) {
-                        photoDraweeView.setAdjustMaxScale(true);
-                    } else {
-                        photoDraweeView.setAdjustMaxScale(false);
-                    }
-                }
-            });
 
             photoDraweeView.setController(controller.build());
 
